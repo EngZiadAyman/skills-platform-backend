@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
@@ -8,6 +7,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -16,8 +16,6 @@ app.use(cors({
   ],
   credentials: true
 }));
-
-
 app.use(express.json());
 
 // Supabase Client
@@ -29,6 +27,29 @@ const supabase = createClient(
 // Google AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+// ==========================================
+// 🏠 ROOT & HEALTH CHECK
+// ==========================================
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Skills Platform API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth/*',
+      tasks: '/api/tasks/*',
+      submissions: '/api/submissions/*',
+      performance: '/api/performance/*',
+      ai: '/api/ai/*'
+    }
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running', timestamp: new Date().toISOString() });
+});
 
 // ==========================================
 // 🏫 SCHOOLS API
@@ -67,7 +88,7 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(404).json({ success: false, error: 'المدرسة غير موجودة' });
     }
 
-    // Create user (simplified - no auth for demo)
+    // Create user
     const { data: user, error } = await supabase
       .from('users')
       .insert({
@@ -97,6 +118,13 @@ app.post('/api/auth/login', async (req, res) => {
       .single();
 
     if (error) throw error;
+    
+    // Update last login
+    await supabase
+      .from('users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', user.id);
+    
     res.json({ success: true, user });
   } catch (error) {
     res.status(401).json({ success: false, error: 'المستخدم غير موجود' });
@@ -370,13 +398,13 @@ app.post('/api/ai/grade-submission', async (req, res) => {
       .single();
 
     const prompt = `
-قيّم هذا الحل للطالب بناءً على مهارات القرن 21:
+قيِّم هذا الحل للطالب بناءً على مهارات القرن 21:
 
 المهمة: ${submission.tasks.title}
 الوصف: ${submission.tasks.description}
 حل الطالب: ${submission.content}
 
-قيّم المهارات التالية من 0-100:
+قيِّم المهارات التالية من 0-100:
 - Communication (التواصل)
 - Critical Thinking (التفكير النقدي)  
 - Creativity (الإبداع)
@@ -487,12 +515,23 @@ app.post('/api/ai/recommendations', async (req, res) => {
   }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+// ==========================================
+// 404 Handler
+// ==========================================
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Endpoint not found',
+    path: req.path,
+    method: req.method
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+// ==========================================
+// Start Server
+// ==========================================
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
 });
-
