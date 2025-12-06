@@ -14,8 +14,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://skills-platform-frontend-khuum6q10.vercel.app',
-  'https://skills-platform-frontend-sage.vercel.app' // رابطك الجديد
+  'https://skills-platform-frontend-sage.vercel.app/',
 ];
 
 if (process.env.FRONTEND_URL) {
@@ -620,3 +619,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🤖 AI: ${model ? 'Enabled ✅' : 'Disabled ❌'}`);
   console.log('='.repeat(50));
 });
+
